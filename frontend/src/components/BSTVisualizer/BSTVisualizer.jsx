@@ -15,6 +15,44 @@ const insertCodeLines = [
   "    return root",
 ];
 
+const searchCodeLines = [
+  "def search(root, key):",
+  "    if root is None:",
+  "        return False",
+  "    if key == root.key:",
+  "        return True",
+  "    if key < root.key:",
+  "        return search(root.left, key)",
+  "    else:",
+  "        return search(root.right, key)",
+];
+
+const deleteCodeLines = [
+  "def find_min(node):",
+  "    while node.left is not None:",
+  "        node = node.left",
+  "    return node",
+  "",
+  "def delete(root, key):",
+  "    if root is None:",
+  "        return None",
+  "    if key < root.key:",
+  "        root.left = delete(root.left, key)",
+  "    elif key > root.key:",
+  "        root.right = delete(root.right, key)",
+  "    else:",
+  "        if root.left is None and root.right is None:",
+  "            return None",
+  "        if root.left is None:",
+  "            return root.right",
+  "        if root.right is None:",
+  "            return root.left",
+  "        min_node = find_min(root.right)",
+  "        root.key = min_node.key",
+  "        root.right = delete(root.right, min_node.key)",
+  "    return root",
+];
+
 
 
 function createNode(key) {
@@ -183,6 +221,7 @@ function buildInsertSteps(root, key) {
   const steps = [];
   const rootCopy = cloneTree(root);
   const path = [];
+  const algorithm = "insert";
 
   function pushStep(
     desc,
@@ -198,6 +237,7 @@ function buildInsertSteps(root, key) {
       highlightNodes: currentKey != null ? [currentKey] : [],
       highlightPath: [...path],
       description: desc,
+      algorithm,
       codeLine,
       newNodeKey,
       showArrow,
@@ -214,6 +254,7 @@ function buildInsertSteps(root, key) {
       highlightNodes: [key],
       highlightPath: [key],
       description: `Strom je prázdný, vytváříme kořen s klíčem ${key}.`,
+      algorithm,
       codeLine: 1, // if root is None
       newNodeKey: key,
       showArrow: false,
@@ -224,6 +265,7 @@ function buildInsertSteps(root, key) {
       highlightNodes: [key],
       highlightPath: [key],
       description: `Vložení ${key} dokončeno.`,
+      algorithm,
       codeLine: 7, // return root
       newNodeKey: key,
       showArrow: true,
@@ -323,6 +365,7 @@ function buildInsertSteps(root, key) {
     highlightNodes: [key],
     highlightPath: [...path],
     description: `Vložení ${key} dokončeno.`,
+    algorithm,
     codeLine: 7, // return root
     newNodeKey: key,
     showArrow: true,
@@ -330,6 +373,405 @@ function buildInsertSteps(root, key) {
   });
 
   return { steps, finalRoot: rootCopy };
+}
+
+function buildSearchSteps(root, key) {
+  const steps = [];
+  const rootCopy = cloneTree(root);
+  const path = [];
+  const algorithm = "search";
+
+  const pushStep = (
+    desc,
+    codeLine,
+    currentKey = null,
+    showArrow = false,
+    arrowPath = null
+  ) => {
+    steps.push({
+      id: `${steps.length}-${Date.now()}`,
+      tree: cloneTree(rootCopy),
+      highlightNodes: currentKey != null ? [currentKey] : [],
+      highlightPath: [...path],
+      description: desc,
+      algorithm,
+      codeLine,
+      newNodeKey: null,
+      showArrow,
+      arrowPath,
+    });
+  };
+
+  if (!rootCopy) {
+    pushStep(
+      "Strom je prázdný, takže vracíme False.",
+      1,
+      null,
+      false,
+      null
+    );
+    pushStep(
+      `Hodnota ${key} nebyla nalezena.`,
+      2,
+      null,
+      false,
+      null
+    );
+    return { steps, found: false };
+  }
+
+  let node = rootCopy;
+  pushStep(`Začínáme hledat klíč ${key}.`, 0, node.key, true, [node.key]);
+
+  while (node) {
+    path.push(node.key);
+
+    pushStep(
+      `Kontrolujeme, zda ${key} == ${node.key}.`,
+      3,
+      node.key,
+      true,
+      [...path]
+    );
+
+    if (key === node.key) {
+      pushStep(
+        `Klíč ${key} nalezen v uzlu ${node.key}.`,
+        4,
+        node.key,
+        true,
+        [...path]
+      );
+      return { steps, found: true };
+    }
+
+    if (key < node.key) {
+      pushStep(
+        `Porovnání: ${key} < ${node.key} → pokračujeme doleva.`,
+        5,
+        node.key,
+        true,
+        node.left ? [...path, node.left.key] : [...path]
+      );
+
+      if (!node.left) {
+        pushStep(
+          `Levý potomek neexistuje, ${key} ve stromu není.`,
+          2,
+          null,
+          true,
+          [...path]
+        );
+        return { steps, found: false };
+      }
+
+      node = node.left;
+      pushStep(
+        `Voláme search na levém potomku ${node.key}.`,
+        6,
+        node.key,
+        true,
+        [...path, node.key]
+      );
+    } else {
+      pushStep(
+        `Porovnání: ${key} > ${node.key} → pokračujeme doprava.`,
+        7,
+        node.key,
+        true,
+        node.right ? [...path, node.right.key] : [...path]
+      );
+
+      if (!node.right) {
+        pushStep(
+          `Pravý potomek neexistuje, ${key} ve stromu není.`,
+          2,
+          null,
+          true,
+          [...path]
+        );
+        return { steps, found: false };
+      }
+
+      node = node.right;
+      pushStep(
+        `Voláme search na pravém potomku ${node.key}.`,
+        8,
+        node.key,
+        true,
+        [...path, node.key]
+      );
+    }
+  }
+
+  return { steps, found: false };
+}
+
+function buildDeleteSteps(root, key) {
+  const steps = [];
+  let rootCopy = cloneTree(root);
+  const path = [];
+  const algorithm = "delete";
+
+  function pushStep(
+    desc,
+    codeLine,
+    currentKey = null,
+    newNodeKey = null,
+    showArrow = false,
+    arrowPath = null
+  ) {
+    steps.push({
+      id: `${steps.length}-${Date.now()}`,
+      tree: cloneTree(rootCopy),
+      highlightNodes: currentKey != null ? [currentKey] : [],
+      highlightPath: [...path],
+      description: desc,
+      algorithm,
+      codeLine,
+      newNodeKey,
+      showArrow,
+      arrowPath,
+    });
+  }
+
+  if (!rootCopy) {
+    pushStep("Strom je prázdný, není co mazat.", 6);
+    return { steps, finalRoot: null, found: false };
+  }
+
+  const replaceChild = (parent, childKey, newChild) => {
+    if (!parent) {
+      rootCopy = newChild;
+      return;
+    }
+    if (parent.left && parent.left.key === childKey) {
+      parent.left = newChild;
+    } else if (parent.right && parent.right.key === childKey) {
+      parent.right = newChild;
+    }
+  };
+
+  let node = rootCopy;
+  let parent = null;
+
+  pushStep(`Začínáme mazat klíč ${key}.`, 5, node.key, null, true, [node.key]);
+
+  while (node) {
+    path.push(node.key);
+
+    if (key < node.key) {
+      pushStep(
+        `Porovnání: ${key} < ${node.key} → jdeme doleva.`,
+        8,
+        node.key,
+        null,
+        true,
+        node.left ? [...path, node.left.key] : [...path]
+      );
+      if (!node.left) {
+        pushStep(
+          `Levý potomek neexistuje, ${key} ve stromu není.`,
+          7,
+          null,
+          null,
+          true,
+          [...path]
+        );
+        return { steps, finalRoot: rootCopy, found: false };
+      }
+      parent = node;
+      node = node.left;
+      pushStep(
+        `Rekurzivně voláme delete na levém potomku ${node.key}.`,
+        9,
+        node.key,
+        null,
+        true,
+        [...path, node.key]
+      );
+      continue;
+    }
+
+    if (key > node.key) {
+      pushStep(
+        `Porovnání: ${key} > ${node.key} → jdeme doprava.`,
+        10,
+        node.key,
+        null,
+        true,
+        node.right ? [...path, node.right.key] : [...path]
+      );
+      if (!node.right) {
+        pushStep(
+          `Pravý potomek neexistuje, ${key} ve stromu není.`,
+          7,
+          null,
+          null,
+          true,
+          [...path]
+        );
+        return { steps, finalRoot: rootCopy, found: false };
+      }
+      parent = node;
+      node = node.right;
+      pushStep(
+        `Rekurzivně voláme delete na pravém potomku ${node.key}.`,
+        11,
+        node.key,
+        null,
+        true,
+        [...path, node.key]
+      );
+      continue;
+    }
+
+    // node.key === key
+    pushStep(
+      `Našli jsme uzel s klíčem ${key}, provádíme mazání.`,
+      12,
+      node.key,
+      null,
+      true,
+      [...path]
+    );
+
+    const hasLeft = !!node.left;
+    const hasRight = !!node.right;
+
+    if (!hasLeft && !hasRight) {
+      pushStep(
+        `Uzel ${key} je list, odstraňujeme ho (vracíme None).`,
+        13,
+        node.key,
+        null,
+        true,
+        [...path]
+      );
+      replaceChild(parent, node.key, null);
+      node = null;
+      break;
+    }
+
+    if (!hasLeft) {
+      pushStep(
+        `Uzel má pouze pravého potomka, posouváme ho nahoru.`,
+        15,
+        node.key,
+        node.right.key,
+        true,
+        [...path, node.right.key]
+      );
+      replaceChild(parent, node.key, node.right);
+      if (!parent) {
+        rootCopy = node.right;
+      }
+      node = null;
+      break;
+    }
+
+    if (!hasRight) {
+      pushStep(
+        `Uzel má pouze levého potomka, posouváme ho nahoru.`,
+        17,
+        node.key,
+        node.left.key,
+        true,
+        [...path, node.left.key]
+      );
+      replaceChild(parent, node.key, node.left);
+      if (!parent) {
+        rootCopy = node.left;
+      }
+      node = null;
+      break;
+    }
+
+    // two children
+    pushStep(
+      `Uzel má dva potomky, hledáme inorder následníka (min v pravém podstromu).`,
+      19,
+      node.key,
+      null,
+      true,
+      node.right ? [...path, node.right.key] : [...path]
+    );
+
+    let succParent = node;
+    let succ = node.right;
+    const succPath = [...path, succ.key];
+
+    pushStep(
+      `Voláme find_min na pravém podstromu.`,
+      0,
+      succ.key,
+      null,
+      true,
+      [...succPath]
+    );
+
+    while (succ.left) {
+      succParent = succ;
+      succ = succ.left;
+      succPath.push(succ.key);
+      pushStep(
+        `Posouváme se doleva v find_min (hledáme nejmenší).`,
+        1,
+        succ.key,
+        null,
+        true,
+        [...succPath]
+      );
+    }
+
+    pushStep(
+      `Nalezen inorder následník s klíčem ${succ.key}.`,
+      3,
+      succ.key,
+      succ.key,
+      true,
+      [...succPath]
+    );
+
+    node.key = succ.key;
+    pushStep(
+      `Nahrazujeme klíč uzlu hodnotou ${succ.key}.`,
+      20,
+      node.key,
+      succ.key,
+      true,
+      [...path]
+    );
+
+    // delete successor node
+    if (succParent === node) {
+      succParent.right = succ.right;
+    } else {
+      succParent.left = succ.right;
+    }
+
+    pushStep(
+      `Odstraňujeme inorder následníka z pravého podstromu.`,
+      21,
+      succParent.key,
+      null,
+      true,
+      [...succPath]
+    );
+
+    break;
+  }
+
+  pushStep(
+    `Mazání ${key} dokončeno.`,
+    22,
+    null,
+    null,
+    true,
+    [...path]
+  );
+
+  return { steps, finalRoot: rootCopy, found: true };
 }
 
 
@@ -344,6 +786,7 @@ function BSTVisualizer({ onBack }) {
   const [searchValue, setSearchValue] = useState("25");
   const [deleteValue, setDeleteValue] = useState("");
   const [searchMessage, setSearchMessage] = useState("");
+  const [selectedAlgorithm, setSelectedAlgorithm] = useState("insert");
 
   const [mode, setMode] = useState("instant"); // "instant" | "steps"
   const [steps, setSteps] = useState([]);
@@ -356,8 +799,26 @@ function BSTVisualizer({ onBack }) {
 
   const hasSteps = mode === "steps" && steps.length > 0;
   const currentStep = hasSteps ? steps[currentStepIndex] : null;
+  const activeAlgorithm = currentStep ? currentStep.algorithm : null;
   const activeCodeLine = currentStep ? currentStep.codeLine : null;
   const stepDescription = currentStep ? currentStep.description : "";
+  const paneAlgorithm = hasSteps
+    ? activeAlgorithm || selectedAlgorithm
+    : selectedAlgorithm;
+  const paneLinesMap = {
+    insert: insertCodeLines,
+    search: searchCodeLines,
+    delete: deleteCodeLines,
+  };
+  const paneTitles = {
+    insert: "Insert v BST",
+    search: "Vyhledávání v BST",
+    delete: "Mazání v BST",
+  };
+  const paneActiveLine =
+    activeAlgorithm === paneAlgorithm ? activeCodeLine : null;
+  const paneDescription =
+    hasSteps && activeAlgorithm === paneAlgorithm ? stepDescription : "";
 
   useEffect(() => {
     const hasStepsLocal = mode === "steps" && steps.length > 0;
@@ -519,6 +980,7 @@ function BSTVisualizer({ onBack }) {
     setRoot((prev) => insertNode(prev, value));
     setHighlightKeys([]);
     setSearchMessage("");
+    setSelectedAlgorithm("insert");
     clearSteps();
   };
 
@@ -535,6 +997,7 @@ function BSTVisualizer({ onBack }) {
     setSteps(builtSteps);
     setCurrentStepIndex(0);
     setMode("steps");
+    setSelectedAlgorithm("insert");
   };
 
   const handleGenerateRandom = () => {
@@ -556,7 +1019,27 @@ function BSTVisualizer({ onBack }) {
         ? `Hodnota ${value} byla nalezena.`
         : `Hodnota ${value} v stromu není.`
     );
+    setSelectedAlgorithm("search");
     clearSteps();
+  };
+
+  const handleSearchWithSteps = () => {
+    const value = Number(searchValue);
+    if (!Number.isFinite(value)) return;
+
+    const { steps: builtSteps, found } = buildSearchSteps(root, value);
+    if (!builtSteps.length) return;
+
+    setHighlightKeys([]);
+    setSteps(builtSteps);
+    setCurrentStepIndex(0);
+    setMode("steps");
+    setSelectedAlgorithm("search");
+    setSearchMessage(
+      found
+        ? `Hodnota ${value} byla nalezena.`
+        : `Hodnota ${value} v stromu není.`
+    );
   };
 
   const handleDelete = () => {
@@ -566,7 +1049,24 @@ function BSTVisualizer({ onBack }) {
     setRoot((prev) => deleteNode(prev, value));
     setHighlightKeys([]);
     setSearchMessage("");
+    setSelectedAlgorithm("delete");
     clearSteps();
+  };
+
+  const handleDeleteWithSteps = () => {
+    const value = Number(deleteValue);
+    if (!Number.isFinite(value)) return;
+
+    const { steps: builtSteps, finalRoot } = buildDeleteSteps(root, value);
+    if (!builtSteps.length) return;
+
+    setRoot(finalRoot);
+    setHighlightKeys([]);
+    setSearchMessage("");
+    setSteps(builtSteps);
+    setCurrentStepIndex(0);
+    setMode("steps");
+    setSelectedAlgorithm("delete");
   };
 
   const handleReset = () => {
@@ -628,6 +1128,9 @@ function BSTVisualizer({ onBack }) {
             <button className="bst-btn" onClick={handleSearch}>
               Najít
             </button>
+            <button className="bst-btn" onClick={handleSearchWithSteps}>
+              Najít s kroky
+            </button>
             <span className="bst-search-result">{searchMessage}</span>
           </div>
 
@@ -643,6 +1146,9 @@ function BSTVisualizer({ onBack }) {
             />
             <button className="bst-btn" onClick={handleDelete}>
               Smazat
+            </button>
+            <button className="bst-btn" onClick={handleDeleteWithSteps}>
+              Smazat s kroky
             </button>
           </div>
         </div>
@@ -704,14 +1210,19 @@ function BSTVisualizer({ onBack }) {
 
           <div className="bst-code-column">
 
-            <div className="bst-card bst-code-card">
-              <h2 className="bst-code-title">Insert v BST</h2>
+            <div
+              className={
+                "bst-card bst-code-card" +
+                (paneAlgorithm === "delete" ? " bst-code-card--delete" : "")
+              }
+            >
+              <h2 className="bst-code-title">{paneTitles[paneAlgorithm]}</h2>
               <AlgorithmCodePane
-                lines={insertCodeLines}
-                activeLine={activeCodeLine}
+                lines={paneLinesMap[paneAlgorithm]}
+                activeLine={paneActiveLine}
               />
-              {hasSteps && (
-                <p className="bst-step-description">{stepDescription}</p>
+              {paneDescription && (
+                <p className="bst-step-description">{paneDescription}</p>
               )}
             </div>
 

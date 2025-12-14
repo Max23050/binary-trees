@@ -10,7 +10,7 @@
 
 .bst-app {
   width: 100%;
-  max-width: 1280px;            /* было 960px — теперь шире */
+  max-width: 1280px;            
 }
 
 /* ----- CARD ----- */
@@ -99,7 +99,7 @@
 
 .bst-svg {
   width: 100%;
-  height: 540px;        /* КЛЮЧЕВОЕ: фиксируем высоту, дерево становится крупнее */
+  height: 540px;        
   display: block;
 }
 
@@ -197,7 +197,7 @@
   margin-bottom: 16px;
 }
 
-/* дерево сильно шире, код фиксированной ширины */
+
 .bst-tree-card {
   flex: 1 1 0;
 }
@@ -206,23 +206,30 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  flex: 0 0 420px;     /* ширина правой колонки */
+  flex: 0 0 420px;     
   max-width: 420px;
 }
 
 .bst-code-card {
-  flex: 0 0 415px;   /* ширина окна кода ~340px */
+  flex: 0 0 415px;   
   max-width: 415px;
   max-height: 205px;
 }
 
+.bst-code-card--delete {
+  max-height: 415px;
+}
+
+.bst-code-card--delete .code-pane {
+  max-height: 340px;
+}
+
 .bst-stats-card {
-  /* можно чуть меньше паддинги, если хочешь */
   padding-top: 10px;
   padding-bottom: 10px;
 }
 
-/* Мобильная версия: в колонку */
+
 @media (max-width: 900px) {
   .bst-main-row {
     flex-direction: column;
