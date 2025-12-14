@@ -1,0 +1,243 @@
+.bst-root {
+  min-height: 100vh;
+  background: #0f172a;
+  padding: 24px;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.bst-app {
+  width: 100%;
+  max-width: 1280px;            /* было 960px — теперь шире */
+}
+
+/* ----- CARD ----- */
+
+.bst-card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+
+/* ----- HEADER ----- */
+
+.bst-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.bst-header h1 {
+  font-size: 24px;
+  margin: 0;
+}
+
+.bst-header-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+/* ----- CONTROLS ----- */
+
+.bst-controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.bst-input {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  min-width: 80px;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.bst-btn {
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.bst-btn:hover {
+  background: #f3f4f6;
+}
+
+.bst-btn.primary {
+  background: #111827;
+  color: #ffffff;
+  border-color: #111827;
+}
+
+.bst-btn.primary:hover {
+  background: #020617;
+}
+
+.bst-btn.secondary {
+  background: transparent;
+  border-color: #e5e7eb;
+}
+
+.bst-search-result {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* ----- SVG / TREE ----- */
+
+.bst-svg {
+  width: 100%;
+  height: 540px;        /* КЛЮЧЕВОЕ: фиксируем высоту, дерево становится крупнее */
+  display: block;
+}
+
+.bst-svg text {
+  paint-order: stroke;
+  stroke: #ffffff;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+/* ----- STATS ----- */
+
+.bst-stats {
+  font-size: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+}
+
+.bst-stats strong {
+  font-weight: 600;
+}
+
+/* ----- STEPS BAR ----- */
+
+.bst-steps-card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.bst-steps-info {
+  color: #4b5563;
+}
+
+.bst-steps-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bst-steps-btn {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.bst-steps-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ----- CODE PANE ----- */
+
+.bst-code-card {
+  background: #020617;
+  color: #e5e7eb;
+
+  /* новое: окно кода ниже и со скроллом */
+  max-height: 420px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.bst-code-title {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.bst-step-description {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #e5e7eb;
+}
+
+/* ----- MAIN 2-COLUMN LAYOUT ----- */
+
+.bst-main-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+/* дерево сильно шире, код фиксированной ширины */
+.bst-tree-card {
+  flex: 1 1 0;
+}
+
+.bst-code-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 0 0 420px;     /* ширина правой колонки */
+  max-width: 420px;
+}
+
+.bst-code-card {
+  flex: 0 0 415px;   /* ширина окна кода ~340px */
+  max-width: 415px;
+  max-height: 205px;
+}
+
+.bst-stats-card {
+  /* можно чуть меньше паддинги, если хочешь */
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+/* Мобильная версия: в колонку */
+@media (max-width: 900px) {
+  .bst-main-row {
+    flex-direction: column;
+  }
+
+  .bst-code-column {
+    flex: 1 1 auto;
+    max-width: 100%;
+  }
+
+  .bst-code-card {
+    max-height: none;
+  }
+
+  .bst-svg {
+    height: 400px;
+  }
+}

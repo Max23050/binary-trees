@@ -1,0 +1,36 @@
+.code-pane {
+  margin: 0;
+  background: #020617;
+  border-radius: 12px;
+  padding: 8px 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 13px;
+  color: #e5e7eb;
+  overflow: auto;
+  max-height: 260px;
+}
+
+.code-pane-line {
+  padding: 0 12px;
+}
+
+.code-pane-line-number {
+  width: 32px;
+  text-align: right;
+  color: #6b7280;
+  user-select: none;
+  margin-right: 8px;
+}
+
+.code-pane-line-text {
+  white-space: pre;
+}
+
+.code-pane-line--active {
+  background: rgba(59, 130, 246, 0.18);
+}
+
+.code-pane-line--active .code-pane-line-number {
+  color: #93c5fd;
+}
