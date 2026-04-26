@@ -12,7 +12,7 @@ The current version includes a visualizer for **BST (Binary Search Tree)**. The 
 - node deletion
 - inorder traversal
 - step-by-step algorithm playback with explanations of individual states
-- pseudocode display with highlighting of the currently executed line
+- python code panel with highlighting of the currently executed line
 - basic tree statistics such as height, node count, and number of comparisons
 - random tree generation for quick testing
 
