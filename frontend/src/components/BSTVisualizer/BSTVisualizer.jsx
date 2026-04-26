@@ -53,6 +53,14 @@ const deleteCodeLines = [
   "    return root",
 ];
 
+const inorderCodeLines = [
+  "def inorder(node):",
+  "    if node is None:",
+  "        return",
+  "    inorder(node.left)",
+  "    print(node.value)",
+  "    inorder(node.right)",
+];
 
 
 function createNode(key) {
@@ -89,6 +97,79 @@ function findPath(node, key, path = []) {
   return findPath(node.right, key, path);
 }
 
+function formatIntervalBound(value, fallback) {
+  return value == null ? fallback : value;
+}
+
+function formatInterval(interval) {
+  if (!interval) return "-";
+  return `(${formatIntervalBound(interval.min, "-∞")}, ${formatIntervalBound(
+    interval.max,
+    "∞"
+  )})`;
+}
+
+function findSearchTrace(root, key) {
+  const path = [];
+  let node = root;
+  let min = null;
+  let max = null;
+
+  if (!node) {
+    return {
+      path,
+      found: false,
+      missingLeaf: null,
+      interval: { min, max },
+    };
+  }
+
+  while (node) {
+    path.push(node.key);
+
+    if (key === node.key) {
+      return {
+        path,
+        found: true,
+        missingLeaf: null,
+        interval: { min, max },
+      };
+    }
+
+    if (key < node.key) {
+      if (!node.left) {
+        return {
+          path,
+          found: false,
+          missingLeaf: { parentKey: node.key, direction: "left" },
+          interval: { min, max: node.key },
+        };
+      }
+      max = node.key;
+      node = node.left;
+      continue;
+    }
+
+    if (!node.right) {
+      return {
+        path,
+        found: false,
+        missingLeaf: { parentKey: node.key, direction: "right" },
+        interval: { min: node.key, max },
+      };
+    }
+    min = node.key;
+    node = node.right;
+  }
+
+  return {
+    path,
+    found: false,
+    missingLeaf: null,
+    interval: { min, max },
+  };
+}
+
 function getHeight(node) {
   if (!node) return 0;
   return 1 + Math.max(getHeight(node.left), getHeight(node.right));
@@ -120,6 +201,66 @@ function deleteNode(node, key) {
   return { ...node, key: min.key, right: newRight };
 }
 
+function inorderTraversal(node, result = []) {
+  if (!node) return result;
+  inorderTraversal(node.left, result);
+  result.push(node.key);
+  inorderTraversal(node.right, result);
+  return result;
+}
+
+function buildInorderSteps(root) {
+  const steps = [];
+  const rootCopy = cloneTree(root);
+  const stack = [];
+  const traversal = [];
+  const algorithm = "inorder";
+
+  const pushStep = (desc, codeLine, currentKey = null) => {
+    steps.push({
+      id: `${steps.length}-${Date.now()}`,
+      tree: cloneTree(rootCopy),
+      highlightNodes: currentKey != null ? [currentKey] : [],
+      highlightPath: [...stack],
+      currentKey,
+      comparisons: 0,
+      recursionDepth: stack.length,
+      description: desc,
+      algorithm,
+      codeLine,
+      newNodeKey: null,
+      moveKey: null,
+      showArrow: false,
+      arrowPath: null,
+      traversal: [...traversal],
+    });
+  };
+
+  if (!rootCopy) {
+    pushStep("Strom je prázdný, průchod je prázdný.", 1, null);
+    return { steps };
+  }
+
+  const walk = (node) => {
+    if (!node) {
+      pushStep("Dosažen NIL, vracíme se.", 1, null);
+      return;
+    }
+    stack.push(node.key);
+    pushStep(`Jdeme doleva z uzlu ${node.key}.`, 3, node.key);
+    walk(node.left);
+    traversal.push(node.key);
+    pushStep(`Vypisujeme uzel ${node.key}.`, 4, node.key);
+    pushStep(`Jdeme doprava z uzlu ${node.key}.`, 5, node.key);
+    walk(node.right);
+    stack.pop();
+  };
+
+  walk(rootCopy);
+  pushStep("Inorder průchod dokončen.", 5, null);
+  return { steps };
+}
+
 // --- utils ---
 
 function cloneTree(node) {
@@ -132,12 +273,18 @@ function cloneTree(node) {
   };
 }
 
+function getCurrentDepth(path, currentKey) {
+  if (currentKey == null) return 0;
+  const idx = path.indexOf(currentKey);
+  return idx >= 0 ? idx + 1 : path.length + 1;
+}
+
 function computeLayout(
   root,
   { pathKeys = [], highlightKeys = [], newNodeKey = null } = {}
 ) {
   if (!root) {
-    return { nodes: [], links: [], width: 800, height: 240 };
+    return { nodes: [], links: [], width: 800, height: 240, xGap: 50, levelGap: 90 };
   }
 
   const highlightSet = new Set([...pathKeys, ...highlightKeys]);
@@ -212,7 +359,7 @@ function computeLayout(
   });
 
   const height = (Math.max(...nodes.map((n) => n.y)) || 0) + 60;
-  return { nodes, links: linkCoords, width, height };
+  return { nodes, links: linkCoords, width, height, xGap, levelGap };
 }
 
 
@@ -222,6 +369,7 @@ function buildInsertSteps(root, key) {
   const rootCopy = cloneTree(root);
   const path = [];
   const algorithm = "insert";
+  let comparisons = 0;
 
   function pushStep(
     desc,
@@ -236,10 +384,14 @@ function buildInsertSteps(root, key) {
       tree: cloneTree(rootCopy),
       highlightNodes: currentKey != null ? [currentKey] : [],
       highlightPath: [...path],
+      currentKey,
+      comparisons,
+      recursionDepth: getCurrentDepth(path, currentKey),
       description: desc,
       algorithm,
       codeLine,
       newNodeKey,
+      moveKey: null,
       showArrow,
       arrowPath,
     });
@@ -253,6 +405,9 @@ function buildInsertSteps(root, key) {
       tree: cloneTree(newRoot),
       highlightNodes: [key],
       highlightPath: [key],
+      currentKey: key,
+      comparisons,
+      recursionDepth: getCurrentDepth(path, key),
       description: `Strom je prázdný, vytváříme kořen s klíčem ${key}.`,
       algorithm,
       codeLine: 1, // if root is None
@@ -264,6 +419,9 @@ function buildInsertSteps(root, key) {
       tree: cloneTree(newRoot),
       highlightNodes: [key],
       highlightPath: [key],
+      currentKey: key,
+      comparisons,
+      recursionDepth: getCurrentDepth(path, key),
       description: `Vložení ${key} dokončeno.`,
       algorithm,
       codeLine: 7, // return root
@@ -281,6 +439,7 @@ function buildInsertSteps(root, key) {
     path.push(node.key);
 
     if (key === node.key) {
+      comparisons += 1;
       pushStep(
         `Klíč ${key} už ve stromu existuje, nic nevkládáme.`,
         7,
@@ -289,6 +448,7 @@ function buildInsertSteps(root, key) {
       return { steps, finalRoot: rootCopy };
     } else if (key < node.key) {
       // сравнение
+      comparisons += 1;
       pushStep(
         `Porovnání: ${key} < ${node.key} → jdeme do levého podstromu.`,
         3,
@@ -323,6 +483,7 @@ function buildInsertSteps(root, key) {
       }
     } else {
       // key > node.key
+      comparisons += 1;
       pushStep(
         `Porovnání: ${key} > ${node.key} → jdeme do pravého podstromu.`,
         5,
@@ -364,6 +525,9 @@ function buildInsertSteps(root, key) {
     tree: cloneTree(rootCopy),
     highlightNodes: [key],
     highlightPath: [...path],
+    currentKey: key,
+    comparisons,
+    recursionDepth: getCurrentDepth(path, key),
     description: `Vložení ${key} dokončeno.`,
     algorithm,
     codeLine: 7, // return root
@@ -380,23 +544,33 @@ function buildSearchSteps(root, key) {
   const rootCopy = cloneTree(root);
   const path = [];
   const algorithm = "search";
+  let comparisons = 0;
+  let min = null;
+  let max = null;
 
   const pushStep = (
     desc,
     codeLine,
     currentKey = null,
     showArrow = false,
-    arrowPath = null
+    arrowPath = null,
+    newNodeKey = null,
+    missingLeaf = null
   ) => {
     steps.push({
       id: `${steps.length}-${Date.now()}`,
       tree: cloneTree(rootCopy),
       highlightNodes: currentKey != null ? [currentKey] : [],
       highlightPath: [...path],
+      currentKey,
+      comparisons,
+      recursionDepth: getCurrentDepth(path, currentKey),
       description: desc,
       algorithm,
       codeLine,
-      newNodeKey: null,
+      newNodeKey,
+      missingLeaf,
+      interval: { min, max },
       showArrow,
       arrowPath,
     });
@@ -426,6 +600,7 @@ function buildSearchSteps(root, key) {
   while (node) {
     path.push(node.key);
 
+    comparisons += 1;
     pushStep(
       `Kontrolujeme, zda ${key} == ${node.key}.`,
       3,
@@ -440,12 +615,14 @@ function buildSearchSteps(root, key) {
         4,
         node.key,
         true,
-        [...path]
+        [...path],
+        node.key
       );
       return { steps, found: true };
     }
 
     if (key < node.key) {
+      comparisons += 1;
       pushStep(
         `Porovnání: ${key} < ${node.key} → pokračujeme doleva.`,
         5,
@@ -455,16 +632,21 @@ function buildSearchSteps(root, key) {
       );
 
       if (!node.left) {
+        const nextInterval = { min, max: node.key };
         pushStep(
           `Levý potomek neexistuje, ${key} ve stromu není.`,
           2,
           null,
           true,
-          [...path]
+          [...path],
+          null,
+          { parentKey: node.key, direction: "left" }
         );
+        steps[steps.length - 1].interval = nextInterval;
         return { steps, found: false };
       }
 
+      max = node.key;
       node = node.left;
       pushStep(
         `Voláme search na levém potomku ${node.key}.`,
@@ -474,6 +656,7 @@ function buildSearchSteps(root, key) {
         [...path, node.key]
       );
     } else {
+      comparisons += 1;
       pushStep(
         `Porovnání: ${key} > ${node.key} → pokračujeme doprava.`,
         7,
@@ -483,16 +666,21 @@ function buildSearchSteps(root, key) {
       );
 
       if (!node.right) {
+        const nextInterval = { min: node.key, max };
         pushStep(
           `Pravý potomek neexistuje, ${key} ve stromu není.`,
           2,
           null,
           true,
-          [...path]
+          [...path],
+          null,
+          { parentKey: node.key, direction: "right" }
         );
+        steps[steps.length - 1].interval = nextInterval;
         return { steps, found: false };
       }
 
+      min = node.key;
       node = node.right;
       pushStep(
         `Voláme search na pravém potomku ${node.key}.`,
@@ -512,6 +700,7 @@ function buildDeleteSteps(root, key) {
   let rootCopy = cloneTree(root);
   const path = [];
   const algorithm = "delete";
+  let comparisons = 0;
 
   function pushStep(
     desc,
@@ -526,6 +715,9 @@ function buildDeleteSteps(root, key) {
       tree: cloneTree(rootCopy),
       highlightNodes: currentKey != null ? [currentKey] : [],
       highlightPath: [...path],
+      currentKey,
+      comparisons,
+      recursionDepth: getCurrentDepth(path, currentKey),
       description: desc,
       algorithm,
       codeLine,
@@ -561,6 +753,7 @@ function buildDeleteSteps(root, key) {
     path.push(node.key);
 
     if (key < node.key) {
+      comparisons += 1;
       pushStep(
         `Porovnání: ${key} < ${node.key} → jdeme doleva.`,
         8,
@@ -594,6 +787,7 @@ function buildDeleteSteps(root, key) {
     }
 
     if (key > node.key) {
+      comparisons += 1;
       pushStep(
         `Porovnání: ${key} > ${node.key} → jdeme doprava.`,
         10,
@@ -627,6 +821,7 @@ function buildDeleteSteps(root, key) {
     }
 
     // node.key === key
+    comparisons += 1;
     pushStep(
       `Našli jsme uzel s klíčem ${key}, provádíme mazání.`,
       12,
@@ -733,6 +928,10 @@ function buildDeleteSteps(root, key) {
       [...succPath]
     );
 
+    const targetId = node.id;
+    const succId = succ.id;
+    const succValue = succ.key;
+
     node.key = succ.key;
     pushStep(
       `Nahrazujeme klíč uzlu hodnotou ${succ.key}.`,
@@ -742,6 +941,11 @@ function buildDeleteSteps(root, key) {
       true,
       [...path]
     );
+    steps[steps.length - 1].moveKey = {
+      fromId: succId,
+      toId: targetId,
+      value: succValue,
+    };
 
     // delete successor node
     if (succParent === node) {
@@ -787,6 +991,11 @@ function BSTVisualizer({ onBack }) {
   const [deleteValue, setDeleteValue] = useState("");
   const [searchMessage, setSearchMessage] = useState("");
   const [selectedAlgorithm, setSelectedAlgorithm] = useState("insert");
+  const [showMissingLeaves, setShowMissingLeaves] = useState(true);
+  const [showSearchInterval, setShowSearchInterval] = useState(false);
+  const [inorderResult, setInorderResult] = useState([]);
+  const [searchMissingLeaf, setSearchMissingLeaf] = useState(null);
+  const [searchInterval, setSearchInterval] = useState(null);
 
   const [mode, setMode] = useState("instant"); // "instant" | "steps"
   const [steps, setSteps] = useState([]);
@@ -809,16 +1018,32 @@ function BSTVisualizer({ onBack }) {
     insert: insertCodeLines,
     search: searchCodeLines,
     delete: deleteCodeLines,
+    inorder: inorderCodeLines,
   };
   const paneTitles = {
     insert: "Insert v BST",
     search: "Vyhledávání v BST",
     delete: "Mazání v BST",
+    inorder: "Inorder průchod",
   };
   const paneActiveLine =
     activeAlgorithm === paneAlgorithm ? activeCodeLine : null;
   const paneDescription =
     hasSteps && activeAlgorithm === paneAlgorithm ? stepDescription : "";
+  const comparisonsStat =
+    hasSteps && currentStep ? currentStep.comparisons ?? 0 : null;
+  const recursionDepthStat =
+    hasSteps && currentStep ? currentStep.recursionDepth ?? 0 : null;
+  const inorderDisplay =
+    hasSteps && currentStep && currentStep.algorithm === "inorder"
+      ? currentStep.traversal || []
+      : inorderResult;
+  const intervalStat =
+    paneAlgorithm === "search"
+      ? hasSteps && currentStep && currentStep.algorithm === "search"
+        ? currentStep.interval || null
+        : searchInterval
+      : null;
 
   useEffect(() => {
     const hasStepsLocal = mode === "steps" && steps.length > 0;
@@ -838,14 +1063,35 @@ function BSTVisualizer({ onBack }) {
         )
       : highlightKeys;
     const newNodeKey = hasStepsLocal ? step.newNodeKey || null : null;
+    const missingLeaf = hasStepsLocal
+      ? showMissingLeaves
+        ? step.missingLeaf || null
+        : null
+      : showMissingLeaves
+      ? searchMissingLeaf
+      : null;
+    const moveKey = hasStepsLocal ? step.moveKey || null : null;
+    const currentNodeKey = hasStepsLocal
+      ? step.currentKey != null
+        ? step.currentKey
+        : step.highlightNodes && step.highlightNodes.length
+        ? step.highlightNodes[0]
+        : null
+      : null;
 
     const svg = d3.select(svgRef.current);
     let gLinks = svg.select("g.links");
     let gNodes = svg.select("g.nodes");
+    let gCurrent = svg.select("g.current-marker");
+    let gMissing = svg.select("g.missing-leaf");
+    let gKeyMove = svg.select("g.key-move");
     let defs = svg.select("defs");
 
     if (gLinks.empty()) gLinks = svg.append("g").attr("class", "links");
     if (gNodes.empty()) gNodes = svg.append("g").attr("class", "nodes");
+    if (gCurrent.empty()) gCurrent = svg.append("g").attr("class", "current-marker");
+    if (gMissing.empty()) gMissing = svg.append("g").attr("class", "missing-leaf");
+    if (gKeyMove.empty()) gKeyMove = svg.append("g").attr("class", "key-move");
     if (defs.empty()) defs = svg.append("defs");
 
     let arrowMarker = defs.select("#bst-arrow-head");
@@ -865,13 +1111,88 @@ function BSTVisualizer({ onBack }) {
 
     arrowMarker.select("path").attr("fill", "#16a34a");
 
-    const { nodes, links, width, height } = computeLayout(treeForRender, {
-      pathKeys: pathHighlight,
-      highlightKeys: nodeHighlight,
-      newNodeKey,
-    });
+    let currentArrowMarker = defs.select("#bst-current-arrow-head");
+    if (currentArrowMarker.empty()) {
+      currentArrowMarker = defs
+        .append("marker")
+        .attr("id", "bst-current-arrow-head");
+      currentArrowMarker.append("path").attr("d", "M 0 0 L 10 4 L 0 8 z");
+    }
 
-    svg.transition().duration(400).attr("viewBox", `0 0 ${width} ${height}`);
+    currentArrowMarker
+      .attr("viewBox", "0 0 10 8")
+      .attr("refX", 9)
+      .attr("refY", 4)
+      .attr("markerWidth", 10)
+      .attr("markerHeight", 10)
+      .attr("orient", "auto");
+
+    currentArrowMarker.select("path").attr("fill", "#f59e0b");
+
+    let keyMoveArrowMarker = defs.select("#bst-keymove-arrow-head");
+    if (keyMoveArrowMarker.empty()) {
+      keyMoveArrowMarker = defs
+        .append("marker")
+        .attr("id", "bst-keymove-arrow-head");
+      keyMoveArrowMarker.append("path").attr("d", "M 0 0 L 10 5 L 0 10 z");
+    }
+
+    keyMoveArrowMarker
+      .attr("viewBox", "0 0 10 10")
+      .attr("refX", 9)
+      .attr("refY", 5)
+      .attr("markerWidth", 9)
+      .attr("markerHeight", 9)
+      .attr("orient", "auto");
+
+    keyMoveArrowMarker.select("path").attr("fill", "#0284c7");
+
+    const { nodes, links, width, height, xGap, levelGap } = computeLayout(
+      treeForRender,
+      {
+        pathKeys: pathHighlight,
+        highlightKeys: nodeHighlight,
+        newNodeKey,
+      }
+    );
+
+    const missingParent =
+      missingLeaf && nodes.find((n) => n.key === missingLeaf.parentKey);
+    const missingNode =
+      missingLeaf && missingParent
+        ? {
+            id: `missing-${missingParent.id}-${missingLeaf.direction}`,
+            x:
+              missingLeaf.direction === "left"
+                ? missingParent.x - xGap / 2
+                : missingParent.x + xGap / 2,
+            y: missingParent.y + levelGap,
+            parentX: missingParent.x,
+            parentY: missingParent.y,
+            parentR: missingParent.r,
+          }
+        : null;
+    if (missingNode) {
+      const dx = missingNode.x - missingNode.parentX;
+      const dy = missingNode.y - missingNode.parentY;
+      const len = Math.hypot(dx, dy) || 1;
+      const ux = dx / len;
+      const uy = dy / len;
+      const startOffset = missingNode.parentR + 6;
+      const endOffset = 12 + 4;
+      missingNode.lineX1 = missingNode.parentX + ux * startOffset;
+      missingNode.lineY1 = missingNode.parentY + uy * startOffset;
+      missingNode.lineX2 = missingNode.x - ux * endOffset;
+      missingNode.lineY2 = missingNode.y - uy * endOffset;
+    }
+    const viewHeight = missingNode
+      ? Math.max(height, missingNode.y + 40)
+      : height;
+
+    svg
+      .transition()
+      .duration(400)
+      .attr("viewBox", `0 0 ${width} ${viewHeight}`);
 
     const linkSel = gLinks.selectAll("line.link").data(links, (d) => d.id);
 
@@ -964,7 +1285,197 @@ function BSTVisualizer({ onBack }) {
       .attr("fill", "#111827")
       .attr("font-size", 13)
       .attr("font-weight", 600);
-  }, [root, highlightKeys, mode, steps, currentStepIndex]);
+
+    const moveFrom =
+      moveKey && nodes.find((n) => n.id === moveKey.fromId);
+    const moveTo = moveKey && nodes.find((n) => n.id === moveKey.toId);
+    const moveData =
+      moveKey && moveFrom && moveTo
+        ? [
+            {
+              id: step.id,
+              value: moveKey.value,
+              fromX: moveFrom.x,
+              fromY: moveFrom.y,
+              toX: moveTo.x,
+              toY: moveTo.y,
+              fromR: moveFrom.r,
+              toR: moveTo.r,
+            },
+          ]
+        : [];
+
+    const moveLineSel = gKeyMove
+      .selectAll("line.bst-key-move-line")
+      .data(moveData, (d) => d.id);
+
+    moveLineSel
+      .exit()
+      .transition()
+      .duration(150)
+      .style("opacity", 0)
+      .remove();
+
+    const moveLineEnter = moveLineSel
+      .enter()
+      .append("line")
+      .attr("class", "bst-key-move-line")
+      .style("opacity", 0);
+
+    moveLineEnter
+      .merge(moveLineSel)
+      .style("opacity", 1)
+      .attr("x1", (d) => {
+        const dx = d.toX - d.fromX;
+        const dy = d.toY - d.fromY;
+        const len = Math.hypot(dx, dy) || 1;
+        return d.fromX + (dx / len) * (d.fromR + 4);
+      })
+      .attr("y1", (d) => {
+        const dx = d.toX - d.fromX;
+        const dy = d.toY - d.fromY;
+        const len = Math.hypot(dx, dy) || 1;
+        return d.fromY + (dy / len) * (d.fromR + 4);
+      })
+      .attr("x2", (d) => {
+        const dx = d.toX - d.fromX;
+        const dy = d.toY - d.fromY;
+        const len = Math.hypot(dx, dy) || 1;
+        return d.toX - (dx / len) * (d.toR + 10);
+      })
+      .attr("y2", (d) => {
+        const dx = d.toX - d.fromX;
+        const dy = d.toY - d.fromY;
+        const len = Math.hypot(dx, dy) || 1;
+        return d.toY - (dy / len) * (d.toR + 10);
+      })
+      .attr("marker-end", "url(#bst-keymove-arrow-head)");
+
+    const moveSel = gKeyMove
+      .selectAll("g.bst-key-move")
+      .data(moveData, (d) => d.id);
+
+    moveSel.exit().transition().duration(150).style("opacity", 0).remove();
+
+    const moveEnter = moveSel
+      .enter()
+      .append("g")
+      .attr("class", "bst-key-move")
+      .style("opacity", 1);
+
+    moveEnter.append("circle").attr("class", "bst-key-move-circle").attr("r", 16);
+    moveEnter
+      .append("text")
+      .attr("class", "bst-key-move-text")
+      .attr("text-anchor", "middle")
+      .attr("dominant-baseline", "middle");
+
+    const moveMerge = moveEnter.merge(moveSel);
+
+    moveMerge.select("text").text((d) => d.value);
+
+    moveMerge
+      .interrupt()
+      .attr("transform", (d) => `translate(${d.fromX}, ${d.fromY})`)
+      .transition()
+      .duration(600)
+      .attr("transform", (d) => `translate(${d.toX}, ${d.toY})`);
+
+    const missingData = missingNode ? [missingNode] : [];
+    const missingSel = gMissing
+      .selectAll("g.bst-missing")
+      .data(missingData, (d) => d.id);
+
+    missingSel.exit().transition().duration(200).style("opacity", 0).remove();
+
+    const missingEnter = missingSel
+      .enter()
+      .append("g")
+      .attr("class", "bst-missing")
+      .style("opacity", 0);
+
+    missingEnter.append("line").attr("class", "bst-missing-line");
+    missingEnter.append("circle").attr("class", "bst-missing-circle");
+    missingEnter
+      .append("text")
+      .attr("class", "bst-missing-text")
+      .text("NIL");
+
+    const missingMerge = missingEnter.merge(missingSel);
+
+    missingMerge
+      .transition()
+      .duration(200)
+      .style("opacity", 1);
+
+    missingMerge
+      .select("line")
+      .attr("x1", (d) => d.lineX1)
+      .attr("y1", (d) => d.lineY1)
+      .attr("x2", (d) => d.lineX2)
+      .attr("y2", (d) => d.lineY2);
+
+    missingMerge
+      .select("circle")
+      .attr("cx", (d) => d.x)
+      .attr("cy", (d) => d.y)
+      .attr("r", 12);
+
+    missingMerge
+      .select("text")
+      .attr("x", (d) => d.x)
+      .attr("y", (d) => d.y + 4)
+      .attr("text-anchor", "middle");
+
+    const currentNode =
+      currentNodeKey != null
+        ? nodes.find((n) => n.key === currentNodeKey)
+        : null;
+    const currentData = currentNode ? [currentNode] : [];
+
+    const currentSel = gCurrent
+      .selectAll("g.bst-current")
+      .data(currentData, (d) => d.id);
+
+    currentSel.exit().transition().duration(200).style("opacity", 0).remove();
+
+    const currentEnter = currentSel
+      .enter()
+      .append("g")
+      .attr("class", "bst-current")
+      .style("opacity", 0);
+
+    currentEnter.append("line").attr("class", "bst-current-line");
+    currentEnter.append("text").attr("class", "bst-current-label").text("root");
+
+    const currentMerge = currentEnter.merge(currentSel);
+
+    currentMerge
+      .transition()
+      .duration(200)
+      .style("opacity", 1);
+
+    currentMerge
+      .select("line")
+      .attr("x1", (d) => d.x)
+      .attr("y1", (d) => d.y - d.r - 6)
+      .attr("x2", (d) => d.x)
+      .attr("y2", (d) => d.y - d.r - 16)
+      .attr("marker-end", "url(#bst-current-arrow-head)");
+
+    currentMerge
+      .select("text")
+      .attr("x", (d) => d.x + 8)
+      .attr("y", (d) => d.y - d.r - 18);
+  }, [
+    root,
+    highlightKeys,
+    mode,
+    steps,
+    currentStepIndex,
+    showMissingLeaves,
+    searchMissingLeaf,
+  ]);
 
   // ===== handlers =====
 
@@ -980,6 +1491,8 @@ function BSTVisualizer({ onBack }) {
     setRoot((prev) => insertNode(prev, value));
     setHighlightKeys([]);
     setSearchMessage("");
+    setSearchMissingLeaf(null);
+    setSearchInterval(null);
     setSelectedAlgorithm("insert");
     clearSteps();
   };
@@ -994,6 +1507,8 @@ function BSTVisualizer({ onBack }) {
     setRoot(finalRoot);
     setHighlightKeys([]);
     setSearchMessage("");
+    setSearchMissingLeaf(null);
+    setSearchInterval(null);
     setSteps(builtSteps);
     setCurrentStepIndex(0);
     setMode("steps");
@@ -1005,15 +1520,18 @@ function BSTVisualizer({ onBack }) {
     setRoot(newRoot);
     setHighlightKeys([]);
     setSearchMessage("");
+    setSearchMissingLeaf(null);
+    setSearchInterval(null);
     clearSteps();
   };
 
   const handleSearch = () => {
-    if (!root) return;
     const value = Number(searchValue);
     if (!Number.isFinite(value)) return;
-    const { path, found } = findPath(root, value, []);
+    const { path, found, missingLeaf, interval } = findSearchTrace(root, value);
     setHighlightKeys(path);
+    setSearchMissingLeaf(found ? null : missingLeaf);
+    setSearchInterval(interval);
     setSearchMessage(
       found
         ? `Hodnota ${value} byla nalezena.`
@@ -1031,6 +1549,8 @@ function BSTVisualizer({ onBack }) {
     if (!builtSteps.length) return;
 
     setHighlightKeys([]);
+    setSearchMissingLeaf(null);
+    setSearchInterval(null);
     setSteps(builtSteps);
     setCurrentStepIndex(0);
     setMode("steps");
@@ -1049,6 +1569,8 @@ function BSTVisualizer({ onBack }) {
     setRoot((prev) => deleteNode(prev, value));
     setHighlightKeys([]);
     setSearchMessage("");
+    setSearchMissingLeaf(null);
+    setSearchInterval(null);
     setSelectedAlgorithm("delete");
     clearSteps();
   };
@@ -1063,6 +1585,8 @@ function BSTVisualizer({ onBack }) {
     setRoot(finalRoot);
     setHighlightKeys([]);
     setSearchMessage("");
+    setSearchMissingLeaf(null);
+    setSearchInterval(null);
     setSteps(builtSteps);
     setCurrentStepIndex(0);
     setMode("steps");
@@ -1073,7 +1597,30 @@ function BSTVisualizer({ onBack }) {
     setRoot(null);
     setHighlightKeys([]);
     setSearchMessage("");
+    setInorderResult([]);
+    setSearchMissingLeaf(null);
+    setSearchInterval(null);
     clearSteps();
+  };
+
+  const handleInorder = () => {
+    setInorderResult(inorderTraversal(root, []));
+    setSelectedAlgorithm("inorder");
+    setSearchMissingLeaf(null);
+    setSearchInterval(null);
+    clearSteps();
+  };
+
+  const handleInorderWithSteps = () => {
+    const { steps: builtSteps } = buildInorderSteps(root);
+    if (!builtSteps.length) return;
+    setHighlightKeys([]);
+    setSearchMissingLeaf(null);
+    setSearchInterval(null);
+    setSteps(builtSteps);
+    setCurrentStepIndex(0);
+    setMode("steps");
+    setSelectedAlgorithm("inorder");
   };
 
   return (
@@ -1093,109 +1640,138 @@ function BSTVisualizer({ onBack }) {
           </div>
         </div>
 
-        <div className="bst-card">
-          <div className="bst-controls-row">
-            <span>
-              <strong>Vkládání:</strong>
-            </span>
-            <input
-              type="number"
-              className="bst-input"
-              value={insertValue}
-              onChange={(e) => setInsertValue(e.target.value)}
-            />
-            <button className="bst-btn primary" onClick={handleInsert}>
-              Vložit
-            </button>
-            <button className="bst-btn" onClick={handleInsertWithSteps}>
-              Vložit s kroky
-            </button>
-            <button className="bst-btn" onClick={handleGenerateRandom}>
-              Generovat 10 náhodných hodnot
-            </button>
-          </div>
+        <div className="bst-card bst-controls-card">
+          <div className="bst-controls-layout">
+            <div className="bst-controls-main">
+              <div className="bst-controls-row">
+                <span>
+                  <strong>Vkládání:</strong>
+                </span>
+                <input
+                  type="number"
+                  className="bst-input"
+                  value={insertValue}
+                  onChange={(e) => setInsertValue(e.target.value)}
+                />
+                <button className="bst-btn primary" onClick={handleInsert}>
+                  Vložit
+                </button>
+                <button className="bst-btn" onClick={handleInsertWithSteps}>
+                  Vložit s kroky
+                </button>
+                <button className="bst-btn" onClick={handleGenerateRandom}>
+                  Generovat 10 náhodných hodnot
+                </button>
+              </div>
 
-          <div className="bst-controls-row" style={{ marginTop: 10 }}>
-            <span>
-              <strong>Vyhledávání:</strong>
-            </span>
-            <input
-              type="number"
-              className="bst-input"
-              value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
-            />
-            <button className="bst-btn" onClick={handleSearch}>
-              Najít
-            </button>
-            <button className="bst-btn" onClick={handleSearchWithSteps}>
-              Najít s kroky
-            </button>
-            <span className="bst-search-result">{searchMessage}</span>
-          </div>
+              <div className="bst-controls-row" style={{ marginTop: 10 }}>
+                <span>
+                  <strong>Vyhledávání:</strong>
+                </span>
+                <input
+                  type="number"
+                  className="bst-input"
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                />
+                <button className="bst-btn" onClick={handleSearch}>
+                  Najít
+                </button>
+                <button className="bst-btn" onClick={handleSearchWithSteps}>
+                  Najít s kroky
+                </button>
+                <label className="bst-toggle">
+                  <input
+                    type="checkbox"
+                    checked={showMissingLeaves}
+                    onChange={(e) => setShowMissingLeaves(e.target.checked)}
+                  />
+                  <span>Listy při nenalezení</span>
+                </label>
+                <label className="bst-toggle">
+                  <input
+                    type="checkbox"
+                    checked={showSearchInterval}
+                    onChange={(e) => setShowSearchInterval(e.target.checked)}
+                  />
+                  <span>Zobrazit interval</span>
+                </label>
+                <span className="bst-search-result">{searchMessage}</span>
+              </div>
 
-          <div className="bst-controls-row" style={{ marginTop: 10 }}>
-            <span>
-              <strong>Mazání:</strong>
-            </span>
-            <input
-              type="number"
-              className="bst-input"
-              value={deleteValue}
-              onChange={(e) => setDeleteValue(e.target.value)}
-            />
-            <button className="bst-btn" onClick={handleDelete}>
-              Smazat
-            </button>
-            <button className="bst-btn" onClick={handleDeleteWithSteps}>
-              Smazat s kroky
-            </button>
+              <div className="bst-controls-row" style={{ marginTop: 10 }}>
+                <span>
+                  <strong>Mazání:</strong>
+                </span>
+                <input
+                  type="number"
+                  className="bst-input"
+                  value={deleteValue}
+                  onChange={(e) => setDeleteValue(e.target.value)}
+                />
+                <button className="bst-btn" onClick={handleDelete}>
+                  Smazat
+                </button>
+                <button className="bst-btn" onClick={handleDeleteWithSteps}>
+                  Smazat s kroky
+                </button>
+                <button className="bst-btn" onClick={handleInorder}>
+                  Inorder průchod
+                </button>
+                <button className="bst-btn" onClick={handleInorderWithSteps}>
+                  Inorder s kroky
+                </button>
+              </div>
+            </div>
+
+            {hasSteps && (
+              <aside className="bst-steps-panel">
+                <div className="bst-steps-info">
+                  <span className="bst-steps-label">Průchod</span>
+                  <strong>
+                    Krok {currentStepIndex + 1} / {steps.length}
+                  </strong>
+                </div>
+                <div className="bst-steps-controls">
+                  <button
+                    className="bst-steps-btn"
+                    onClick={() => setCurrentStepIndex(0)}
+                    disabled={currentStepIndex === 0}
+                  >
+                    ⏮ Na začátek
+                  </button>
+                  <button
+                    className="bst-steps-btn"
+                    onClick={() =>
+                      setCurrentStepIndex((i) => Math.max(0, i - 1))
+                    }
+                    disabled={currentStepIndex === 0}
+                  >
+                    ◀ Předchozí
+                  </button>
+                  <button
+                    className="bst-steps-btn"
+                    onClick={() =>
+                      setCurrentStepIndex((i) =>
+                        Math.min(steps.length - 1, i + 1)
+                      )
+                    }
+                    disabled={currentStepIndex === steps.length - 1}
+                  >
+                    Další ▶
+                  </button>
+                  <button
+                    className="bst-steps-btn"
+                    onClick={() => setCurrentStepIndex(steps.length - 1)}
+                    disabled={currentStepIndex === steps.length - 1}
+                  >
+                    ⏭ Na konec
+                  </button>
+                </div>
+              </aside>
+            )}
           </div>
         </div>
-
-        {hasSteps && (
-          <div className="bst-steps-card">
-            <div className="bst-steps-info">
-              Krok {currentStepIndex + 1} / {steps.length}
-            </div>
-            <div className="bst-steps-controls">
-              <button
-                className="bst-steps-btn"
-                onClick={() => setCurrentStepIndex(0)}
-                disabled={currentStepIndex === 0}
-              >
-                ⏮ Na začátek
-              </button>
-              <button
-                className="bst-steps-btn"
-                onClick={() =>
-                  setCurrentStepIndex((i) => Math.max(0, i - 1))
-                }
-                disabled={currentStepIndex === 0}
-              >
-                ◀ Předchozí
-              </button>
-              <button
-                className="bst-steps-btn"
-                onClick={() =>
-                  setCurrentStepIndex((i) =>
-                    Math.min(steps.length - 1, i + 1)
-                  )
-                }
-                disabled={currentStepIndex === steps.length - 1}
-              >
-                Další ▶
-              </button>
-              <button
-                className="bst-steps-btn"
-                onClick={() => setCurrentStepIndex(steps.length - 1)}
-                disabled={currentStepIndex === steps.length - 1}
-              >
-                ⏭ Na konec
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* дерево + код рядом */}
         <div className="bst-main-row">
@@ -1216,10 +1792,11 @@ function BSTVisualizer({ onBack }) {
                 (paneAlgorithm === "delete" ? " bst-code-card--delete" : "")
               }
             >
-              <h2 className="bst-code-title">{paneTitles[paneAlgorithm]}</h2>
               <AlgorithmCodePane
                 lines={paneLinesMap[paneAlgorithm]}
                 activeLine={paneActiveLine}
+                algorithm={paneAlgorithm}
+                title={paneTitles[paneAlgorithm]}
               />
               {paneDescription && (
                 <p className="bst-step-description">{paneDescription}</p>
@@ -1227,15 +1804,37 @@ function BSTVisualizer({ onBack }) {
             </div>
 
             <div className="bst-card bst-stats-card">
-              <div className="bst-stats">
-                <div>
-                  <strong>Počet uzlů:</strong> <span>{stats.count}</span>
-                </div>
-                <div>
-                  <strong>Výška stromu:</strong> <span>{stats.height}</span>
-                </div>
+            <div className="bst-stats">
+              <div>
+                <strong>Počet uzlů:</strong> <span>{stats.count}</span>
               </div>
+              <div>
+                <strong>Výška stromu:</strong> <span>{stats.height}</span>
+              </div>
+              <div>
+                <strong>Počet porovnání:</strong>{" "}
+                <span>{comparisonsStat != null ? comparisonsStat : "-"}</span>
+              </div>
+              <div>
+                <strong>Aktuální hloubka rekurze:</strong>{" "}
+                <span>
+                  {recursionDepthStat != null ? recursionDepthStat : "-"}
+                </span>
+              </div>
+              <div>
+                <strong>Inorder:</strong>{" "}
+                <span>
+                  {inorderDisplay.length ? inorderDisplay.join(", ") : "-"}
+                </span>
+              </div>
+              {showSearchInterval && paneAlgorithm === "search" && (
+                <div>
+                  <strong>Interval:</strong>{" "}
+                  <span>{formatInterval(intervalStat)}</span>
+                </div>
+              )}
             </div>
+          </div>
 
           </div>
 

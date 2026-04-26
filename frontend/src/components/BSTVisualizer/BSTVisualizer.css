@@ -10,7 +10,7 @@
 
 .bst-app {
   width: 100%;
-  max-width: 1280px;            
+  max-width: 1460px;
 }
 
 /* ----- CARD ----- */
@@ -50,6 +50,22 @@
   gap: 8px;
   align-items: center;
   margin-top: 4px;
+}
+
+.bst-controls-card {
+  padding: 18px 20px;
+}
+
+.bst-controls-layout {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.bst-controls-main {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .bst-input {
@@ -95,6 +111,18 @@
   color: #6b7280;
 }
 
+.bst-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #374151;
+}
+
+.bst-toggle input {
+  accent-color: #2563eb;
+}
+
 /* ----- SVG / TREE ----- */
 
 .bst-svg {
@@ -108,6 +136,54 @@
   stroke: #ffffff;
   stroke-width: 3px;
   stroke-linejoin: round;
+}
+
+.bst-missing-line {
+  stroke: #94a3b8;
+  stroke-width: 2;
+  stroke-dasharray: 4 4;
+}
+
+.bst-missing-circle {
+  fill: #f8fafc;
+  stroke: #94a3b8;
+  stroke-width: 2;
+}
+
+.bst-missing-text {
+  fill: #64748b;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.bst-key-move-circle {
+  fill: #e0f2fe;
+  stroke: #0284c7;
+  stroke-width: 2.5;
+}
+
+.bst-key-move-line {
+  stroke: #0284c7;
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0.95;
+}
+
+.bst-key-move-text {
+  fill: #0f172a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.bst-current-line {
+  stroke: #f59e0b;
+  stroke-width: 1.4px;
+}
+
+.bst-current-label {
+  fill: #f59e0b;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 /* ----- STATS ----- */
@@ -124,24 +200,34 @@
   font-weight: 600;
 }
 
-/* ----- STEPS BAR ----- */
+/* ----- STEPS PANEL ----- */
 
-.bst-steps-card {
-  background: #ffffff;
-  border-radius: 16px;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-  padding: 10px 16px;
-  margin-bottom: 16px;
+.bst-steps-panel {
+  flex: 0 0 320px;
+  min-width: 320px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid #d8dee8;
+  background: linear-gradient(180deg, #f8fafc, #eef2f7);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
   gap: 12px;
-  font-size: 14px;
 }
 
 .bst-steps-info {
-  color: #4b5563;
+  color: #334155;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.bst-steps-label {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
 }
 
 .bst-steps-controls {
@@ -151,10 +237,10 @@
 }
 
 .bst-steps-btn {
-  padding: 6px 10px;
+  padding: 8px 12px;
   border-radius: 999px;
   border: 1px solid #d1d5db;
-  background: #f9fafb;
+  background: rgba(255, 255, 255, 0.9);
   font-size: 13px;
   cursor: pointer;
 }
@@ -167,25 +253,28 @@
 /* ----- CODE PANE ----- */
 
 .bst-code-card {
-  background: #020617;
+  background: rgba(3, 7, 18, 0.88);
   color: #e5e7eb;
-
-  /* новое: окно кода ниже и со скроллом */
   max-height: 420px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.28);
 }
 
 .bst-code-title {
-  margin: 0 0 8px;
+  margin: 0 0 14px;
   font-size: 15px;
+  letter-spacing: 0.01em;
+  color: #f8fafc;
 }
 
 .bst-step-description {
-  margin-top: 8px;
+  margin-top: 14px;
   font-size: 13px;
-  color: #e5e7eb;
+  line-height: 1.5;
+  color: rgba(226, 232, 240, 0.9);
 }
 
 /* ----- MAIN 2-COLUMN LAYOUT ----- */
@@ -206,22 +295,25 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  flex: 0 0 420px;     
-  max-width: 420px;
+  flex: 0 0 620px;
+  max-width: 620px;
 }
 
 .bst-code-card {
-  flex: 0 0 415px;   
-  max-width: 415px;
-  max-height: 205px;
+  flex: 0 0 440px;
+  height: 390px;
+  max-width: 620px;
+  max-height: 390px;
 }
 
 .bst-code-card--delete {
-  max-height: 415px;
+  height: 700px;
+  max-height: 700px;
 }
 
-.bst-code-card--delete .code-pane {
-  max-height: 340px;
+.bst-code-card .code-pane-shell {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .bst-stats-card {
@@ -231,6 +323,15 @@
 
 
 @media (max-width: 900px) {
+  .bst-controls-layout {
+    flex-direction: column;
+  }
+
+  .bst-steps-panel {
+    min-width: 0;
+    width: 100%;
+  }
+
   .bst-main-row {
     flex-direction: column;
   }
