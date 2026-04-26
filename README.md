@@ -56,12 +56,6 @@ npm install
 npm run dev
 ```
 
-After starting Vite, open the local address, usually:
-
-```text
-http://localhost:5173
-```
-
 ## Production Build
 
 ```bash
